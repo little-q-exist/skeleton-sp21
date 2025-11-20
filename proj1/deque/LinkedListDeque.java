@@ -18,6 +18,8 @@ public class LinkedListDeque<Item> {
 
     public LinkedListDeque() {
          sentinal = new Node(null);
+         sentinal.next = sentinal;
+         sentinal.prev = sentinal;
          size = 0;
     }
 
@@ -29,6 +31,7 @@ public class LinkedListDeque<Item> {
             sentinal.next.prev = newNode;
         }
         sentinal.next = newNode;
+        size ++;
     }
 
     public void addLast(Item item) {
@@ -39,6 +42,8 @@ public class LinkedListDeque<Item> {
             sentinal.prev.next = newNode;
         }
         sentinal.prev = newNode;
+
+        size ++;
     }
 
     public boolean isEmpty() {
@@ -59,18 +64,18 @@ public class LinkedListDeque<Item> {
     }
 
     public Item removeFirst() {
-        if (sentinal.next == null) {
+        if (sentinal.next == null || sentinal.next == sentinal) {
             return null;
         }
         Item removedData = sentinal.next.data;
-        sentinal.next = sentinal.next.next;
         sentinal.next.prev = sentinal;
+        sentinal.next = sentinal.next.next;
         size--;
         return removedData;
     }
 
     public Item removeLast() {
-        if (sentinal.prev == null) {
+        if (sentinal.prev == null || sentinal.prev == sentinal) {
             return null;
         }
         Item removedData = sentinal.prev.data;
