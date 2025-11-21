@@ -123,4 +123,13 @@ public class LinkedListDequeTest {
         }
 
     }
+
+    @Test
+    public void addLastGetTest() {
+        LinkedListDeque<Integer> l = new LinkedListDeque<>();
+        l.addLast(101);
+        l.addLast(2);
+        l.removeLast();
+        l.removeFirst();
+    }
 }
