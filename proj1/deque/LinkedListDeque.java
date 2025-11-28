@@ -1,6 +1,8 @@
 package deque;
 
-public class LinkedListDeque<Item> {
+import java.util.Iterator;
+
+public class LinkedListDeque<Item> implements Deque<Item> {
     class Node {
         Item data;
         Node prev;
@@ -46,10 +48,6 @@ public class LinkedListDeque<Item> {
             sentinal.next = newNode;
         }
         size ++;
-    }
-
-    public boolean isEmpty() {
-        return size == 0;
     }
 
     public int size() {
@@ -111,6 +109,10 @@ public class LinkedListDeque<Item> {
             current = current.next; // safe because we only iterate size steps
         }
         return current.data;
+    }
+
+    public Iterator<Item> iterator() {
+        return null;
     }
 
     public Item getRecursive(int index) {

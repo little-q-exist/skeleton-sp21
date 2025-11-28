@@ -1,6 +1,9 @@
 package deque;
 
-public class ArrayDeque<Item> {
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+
+public class ArrayDeque<Item> implements Iterable<Item>,Deque<Item> {
     private Item[] items;
     private int size;            // number of elements currently stored
     private int front;           // index of first element
@@ -10,6 +13,13 @@ public class ArrayDeque<Item> {
 
     public ArrayDeque() {
         items = (Item[]) new Object[INIT_CAPACITY];
+        size = 0;
+        front = 0;
+        back = 0; // invariant: when empty front == back
+    }
+
+    public ArrayDeque(int capcaity) {
+        items = (Item[]) new Object[capcaity];
         size = 0;
         front = 0;
         back = 0; // invariant: when empty front == back
@@ -55,6 +65,7 @@ public class ArrayDeque<Item> {
         }
     }
 
+    @Override
     public void addFirst(Item item) {
         if (item == null) {
             return; // or throw IllegalArgumentException; choice: ignore null adds
@@ -65,6 +76,7 @@ public class ArrayDeque<Item> {
         size++;
     }
 
+    @Override
     public void addLast(Item item) {
         if (item == null) {
             return; // ignore null adds
@@ -75,14 +87,12 @@ public class ArrayDeque<Item> {
         size++;
     }
 
-    public boolean isEmpty() {
-        return size == 0;
-    }
-
+    @Override
     public int size() {
         return size;
     }
 
+    @Override
     public void printDeque() {
         for (int i = 0; i < size; i++) {
             System.out.print(items[getIndex(front + i)] + (i == size - 1 ? "" : " "));
@@ -90,6 +100,7 @@ public class ArrayDeque<Item> {
         System.out.println();
     }
 
+    @Override
     public Item removeFirst() {
         if (isEmpty()) {
             return null;
@@ -102,6 +113,7 @@ public class ArrayDeque<Item> {
         return item;
     }
 
+    @Override
     public Item removeLast() {
         if (isEmpty()) {
             return null;
@@ -115,6 +127,7 @@ public class ArrayDeque<Item> {
         return item;
     }
 
+    @Override
     public Item get(int index) {
         if (index < 0 || index >= size) {
             return null;
@@ -126,5 +139,35 @@ public class ArrayDeque<Item> {
     // Optional: expose current capacity (helpful for tests / debugging)
     int capacity() {
         return items.length;
+    }
+
+    public Iterator<Item> iterator() {
+        return new ArrayDequeIterator();
+    }
+
+    private class ArrayDequeIterator implements Iterator<Item> {
+        private int pos;
+        private int count;
+
+        ArrayDequeIterator() {
+            pos = front;
+            count = 0;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return count < size;
+        }
+
+        @Override
+        public Item next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException();
+            }
+            Item item = items[pos];
+            pos = getIndex(pos + 1);
+            count ++;
+            return item;
+        }
     }
 }
