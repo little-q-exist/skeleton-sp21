@@ -15,37 +15,37 @@ public class LinkedListDeque<Item> implements Deque<Item> {
         }
     }
 
-    private Node sentinal;
+    private final Node sentinel;
     private int size;
 
     public LinkedListDeque() {
-         sentinal = new Node(null);
-         sentinal.next = sentinal;
-         sentinal.prev = sentinal;
+         sentinel = new Node(null);
+         sentinel.next = sentinel;
+         sentinel.prev = sentinel;
          size = 0;
     }
 
     public void addFirst(Item item) {
         Node newNode = new Node(item);
-        newNode.prev = sentinal;
-        newNode.next = sentinal.next;
-        // sentinal.next is never null under maintained invariants
-        sentinal.next.prev = newNode; // old first (or sentinel if empty) now points back to newNode
-        sentinal.next = newNode;
+        newNode.prev = sentinel;
+        newNode.next = sentinel.next;
+        // sentinel.next is never null under maintained invariants
+        sentinel.next.prev = newNode; // old first (or sentinel if empty) now points back to newNode
+        sentinel.next = newNode;
         if (size == 0) { // when empty also update sentinel.prev
-            sentinal.prev = newNode;
+            sentinel.prev = newNode;
         }
         size ++;
     }
 
     public void addLast(Item item) {
         Node newNode = new Node(item);
-        newNode.next = sentinal;
-        newNode.prev = sentinal.prev;
-        sentinal.prev.next = newNode; // old last (or sentinel if empty) points forward to newNode
-        sentinal.prev = newNode;
+        newNode.next = sentinel;
+        newNode.prev = sentinel.prev;
+        sentinel.prev.next = newNode; // old last (or sentinel if empty) points forward to newNode
+        sentinel.prev = newNode;
         if (size == 0) { // when empty also update sentinel.next
-            sentinal.next = newNode;
+            sentinel.next = newNode;
         }
         size ++;
     }
@@ -55,8 +55,8 @@ public class LinkedListDeque<Item> implements Deque<Item> {
     }
 
     public void printDeque() {
-        Node current = sentinal.next;
-        while (current != sentinal) { // current never null if invariants hold
+        Node current = sentinel.next;
+        while (current != sentinel) { // current never null if invariants hold
             System.out.print(current.data + " ");
             current = current.next;
         }
@@ -67,16 +67,16 @@ public class LinkedListDeque<Item> implements Deque<Item> {
         if (size == 0) {
             return null;
         }
-        Node first = sentinal.next;
+        Node first = sentinel.next;
         Item removedData = first.data;
         if (size == 1) {
             // restoring empty circular sentinel
-            sentinal.next = sentinal;
-            sentinal.prev = sentinal;
+            sentinel.next = sentinel;
+            sentinel.prev = sentinel;
         } else {
             Node newFirst = first.next;
-            sentinal.next = newFirst;
-            newFirst.prev = sentinal;
+            sentinel.next = newFirst;
+            newFirst.prev = sentinel;
         }
         size--;
         return removedData;
@@ -86,15 +86,15 @@ public class LinkedListDeque<Item> implements Deque<Item> {
         if (size == 0) {
             return null;
         }
-        Node last = sentinal.prev;
+        Node last = sentinel.prev;
         Item removedData = last.data;
         if (size == 1) {
-            sentinal.next = sentinal;
-            sentinal.prev = sentinal;
+            sentinel.next = sentinel;
+            sentinel.prev = sentinel;
         } else {
             Node newLast = last.prev;
-            sentinal.prev = newLast;
-            newLast.next = sentinal;
+            sentinel.prev = newLast;
+            newLast.next = sentinel;
         }
         size--;
         return removedData;
@@ -104,7 +104,7 @@ public class LinkedListDeque<Item> implements Deque<Item> {
         if (index < 0 || index >= size) {
             return null;
         }
-        Node current = sentinal.next;
+        Node current = sentinel.next;
         for (int i = 0; i < index; i++) {
             current = current.next; // safe because we only iterate size steps
         }
@@ -119,7 +119,7 @@ public class LinkedListDeque<Item> implements Deque<Item> {
         if (index >= size || index < 0) {
             return null;
         } else {
-            return getRecursiveHelper(index, 0, sentinal.next).data;
+            return getRecursiveHelper(index, 0, sentinel.next).data;
         }
     }
 
@@ -135,27 +135,27 @@ public class LinkedListDeque<Item> implements Deque<Item> {
     private boolean checkInvariants() {
         // Empty deque invariants
         if (size == 0) {
-            return sentinal.next == sentinal && sentinal.prev == sentinal;
+            return sentinel.next == sentinel && sentinel.prev == sentinel;
         }
         // Non-empty invariants: forward and backward traversal counts match size
         int forwardCount = 0;
-        Node cur = sentinal.next;
+        Node cur = sentinel.next;
         Node lastSeen = null;
-        while (cur != sentinal && forwardCount <= size) {
+        while (cur != sentinel && forwardCount <= size) {
             lastSeen = cur;
             cur = cur.next;
             forwardCount++;
         }
-        if (forwardCount != size || cur != sentinal) return false;
+        if (forwardCount != size || cur != sentinel) return false;
         // backward
         int backwardCount = 0;
-        cur = sentinal.prev;
-        while (cur != sentinal && backwardCount <= size) {
+        cur = sentinel.prev;
+        while (cur != sentinel && backwardCount <= size) {
             cur = cur.prev;
             backwardCount++;
         }
-        if (backwardCount != size || cur != sentinal) return false;
-        // lastSeen should equal sentinal.prev
-        return lastSeen == sentinal.prev;
+        if (backwardCount != size || cur != sentinel) return false;
+        // lastSeen should equal sentinel.prev
+        return lastSeen == sentinel.prev;
     }
 }
