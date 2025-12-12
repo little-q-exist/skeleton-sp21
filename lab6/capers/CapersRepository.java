@@ -87,6 +87,6 @@ public class CapersRepository {
     public static void celebrateBirthday(String name) {
         // TODO
         Dog dog = Dog.fromFile(name);
-        dog.haveBirthday();
+        dog.haveBirthday().saveDog();
     }
 }
