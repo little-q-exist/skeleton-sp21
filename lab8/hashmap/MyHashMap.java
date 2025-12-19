@@ -208,40 +208,36 @@ public class MyHashMap<K, V> implements Map61B<K, V>, Iterable<K> {
         buckets = newBuckets;
     }
 
-    private Collection<Node>[] updateBucket(Collection<Node>[] buckets, K key, V value) {
+    private void updateBucket(Collection<Node>[] buckets, K key, V value) {
         int bucketIndex = getBucketIndex(buckets, key);
         if (buckets[bucketIndex] == null) {
             buckets[bucketIndex] = createBucket();
         }
         buckets[bucketIndex] = findNodeAndUpdate(buckets[bucketIndex], key, value);
-        return buckets;
     }
 
     /**
      * Add a key-value pair to a bucket. Create a bucket if not exist.
-     * @return a new table after the add operation
      */
-    private Collection<Node>[] concatToBucket(Collection<Node>[] buckets, K key, V value) {
+    private void concatToBucket(Collection<Node>[] buckets, K key, V value) {
         int bucketIndex = getBucketIndex(buckets, key);
         if (buckets[bucketIndex] == null) {
             buckets[bucketIndex] = createBucket();
         }
         Node node = createNode(key, value);
         buckets[bucketIndex].add(node);
-        return buckets;
     }
 
     /**
      * Add a node to a bucket. Create a bucket if not exist.
-      @return a new bucket table after the add operation
      */
-    private Collection<Node>[] concatToBucket(Collection<Node>[] buckets, Node node) {
+    private void concatToBucket(Collection<Node>[] buckets, Node node) {
         int bucketIndex = getBucketIndex(buckets, node.key);
         if (buckets[bucketIndex] == null) {
             buckets[bucketIndex] = createBucket();
         }
         buckets[bucketIndex].add(node);
-        return buckets;
+
     }
 
 
@@ -258,9 +254,9 @@ public class MyHashMap<K, V> implements Map61B<K, V>, Iterable<K> {
         resizeWhenNeeded();
         if (containsKey(key)) {
             // update value when key is not unique
-            buckets = updateBucket(buckets, key, value);
+            updateBucket(buckets, key, value);
         } else {
-            buckets = concatToBucket(this.buckets, key, value);
+            concatToBucket(this.buckets, key, value);
             keyset.add(key);
             size++;
         }
@@ -271,11 +267,7 @@ public class MyHashMap<K, V> implements Map61B<K, V>, Iterable<K> {
      */
     @Override
     public Set<K> keySet() {
-        HashSet<K> hashSet = new HashSet<>();
-        for (K k : this) {
-            hashSet.add(k);
-        }
-        return hashSet;
+        return keyset;
     }
 
     /**
