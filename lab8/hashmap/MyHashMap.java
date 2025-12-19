@@ -1,16 +1,15 @@
 package hashmap;
 
-import java.util.Collection;
+import java.util.*;
 
 /**
  *  A hash table-backed Map implementation. Provides amortized constant time
  *  access to elements via get(), remove(), and put() in the best case.
  *
  *  Assumes null keys will never be inserted, and does not resize down upon remove().
- *  @author YOUR NAME HERE
+ *  @author Q
  */
-public class MyHashMap<K, V> implements Map61B<K, V> {
-
+public class MyHashMap<K, V> implements Map61B<K, V>, Iterable<K> {
     /**
      * Protected helper class to store key/value pairs
      * The protected qualifier allows subclass access
@@ -28,11 +27,19 @@ public class MyHashMap<K, V> implements Map61B<K, V> {
     /* Instance Variables */
     private Collection<Node>[] buckets;
     // You should probably define some more!
+    final int INITIAL_SIZE = 16;
+    final double LOAD_FACTOR = 0.75;
+    double maxLoad = LOAD_FACTOR;
+    int size = 0;
 
     /** Constructors */
-    public MyHashMap() { }
+    public MyHashMap() {
+        buckets = createTable(INITIAL_SIZE);
+    }
 
-    public MyHashMap(int initialSize) { }
+    public MyHashMap(int initialSize) {
+        buckets = createTable(initialSize);
+    }
 
     /**
      * MyHashMap constructor that creates a backing array of initialSize.
@@ -41,13 +48,16 @@ public class MyHashMap<K, V> implements Map61B<K, V> {
      * @param initialSize initial size of backing array
      * @param maxLoad maximum load factor
      */
-    public MyHashMap(int initialSize, double maxLoad) { }
+    public MyHashMap(int initialSize, double maxLoad) {
+        buckets = createTable(initialSize);
+        this.maxLoad = maxLoad;
+    }
 
     /**
      * Returns a new node to be placed in a hash table bucket
      */
     private Node createNode(K key, V value) {
-        return null;
+        return new Node(key, value);
     }
 
     /**
@@ -69,7 +79,7 @@ public class MyHashMap<K, V> implements Map61B<K, V> {
      * OWN BUCKET DATA STRUCTURES WITH THE NEW OPERATOR!
      */
     protected Collection<Node> createBucket() {
-        return null;
+        return new ArrayList<>();
     }
 
     /**
@@ -82,10 +92,289 @@ public class MyHashMap<K, V> implements Map61B<K, V> {
      * @param tableSize the size of the table to create
      */
     private Collection<Node>[] createTable(int tableSize) {
-        return null;
+        return new Collection[tableSize];
     }
 
     // TODO: Implement the methods of the Map61B Interface below
     // Your code won't compile until you do so!
+
+     /**
+     * Removes all of the mappings from this map.
+     */
+    @Override
+    public void clear() {
+        buckets = null;
+        size = 0;
+    }
+
+    /**
+     * Returns true if this map contains a mapping for the specified key.
+     *
+     * @param key
+     */
+    @Override
+    public boolean containsKey(K key) {
+        Collection<Node> bucket = getBucketIndex(key);
+        return find(bucket, key) != null;
+    }
+
+    /**
+     * Helper function to find a bucket from current table with a specific key
+     */
+    private Collection<Node> getBucketIndex(K key) {
+        int hash = key.hashCode();
+        int bucketIndex = Math.floorMod(hash, buckets.length);
+        return buckets[bucketIndex];
+    }
+
+    /**
+     * Helper function to find a bucket from specified table with a specific key
+     * @param key
+     * @return
+     */
+    private Collection<Node> getBucketIndex(Collection<Node>[] buckets, K key) {
+        int hash = key.hashCode();
+        int bucketIndex = Math.floorMod(hash, buckets.length);
+        return buckets[bucketIndex];
+    }
+
+    /**
+     * Helper function to find a node with a specific key
+     * @param bucket
+     * @param key
+     * @return
+     */
+    private Node find(Collection<Node> bucket, K key) {
+        for (Node node : bucket) {
+            if (node.key.equals(key)) {
+                return node;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Returns the value to which the specified key is mapped, or null if this
+     * map contains no mapping for the key.
+     *
+     * @param key
+     */
+    @Override
+    public V get(K key) {
+        Collection<Node> bucket = getBucketIndex(key);
+        Node node = find(bucket, key);
+        return node == null? null : node.value;
+    }
+
+    /**
+     * Returns the number of key-value mappings in this map.
+     */
+    @Override
+    public int size() {
+        return size;
+    }
+
+    private void resizeWhenNeeded() {
+        double load = 1.0 * size / buckets.length;
+        if (load > maxLoad) {
+            resize();
+        }
+    }
+
+    private void resize() {
+        int newBucketsSize = buckets.length * 2;
+        Collection<Node>[] newBuckets = createTable(newBucketsSize);
+        // TODO: iterate all Nodes and place them in the new bucket.
+        Iterator<Node> oldBucketsIterator = nodeIterator();
+        while (oldBucketsIterator.hasNext()) {
+            Node node = oldBucketsIterator.next();
+            newBuckets = concatToBucket(newBuckets, node);
+        }
+        buckets = newBuckets;
+    }
+
+    /**
+     * Add a key-value pair to a bucket. Create a bucket if not exist.
+     * @return a new table after the add operation
+     */
+    private Collection<Node>[] concatToBucket(Collection<Node>[] buckets, K key, V value) {
+        Collection<Node> bucket = getBucketIndex(buckets, key);
+        if (bucket == null) {
+            bucket = createBucket();
+        }
+        Node node = createNode(key, value);
+        bucket.add(node);
+        return buckets;
+    }
+
+    /**
+     * Add a node to a bucket. Create a bucket if not exist.
+      @return a new bucket table after the add operation
+     */
+    private Collection<Node>[] concatToBucket(Collection<Node>[] buckets, Node node) {
+        Collection<Node> bucket = getBucketIndex(buckets, node.key);
+        if (bucket == null) {
+            bucket = createBucket();
+        }
+        bucket.add(node);
+        return buckets;
+    }
+
+
+    /**
+     * Associates the specified value with the specified key in this map.
+     * If the map previously contained a mapping for the key,
+     * the old value is replaced.
+     *
+     * @param key
+     * @param value
+     */
+    @Override
+    public void put(K key, V value) {
+        resizeWhenNeeded();
+        buckets = concatToBucket(this.buckets, key, value);
+        size ++;
+    }
+
+    /**
+     * Returns a Set view of the keys contained in this map.
+     */
+    @Override
+    public Set<K> keySet() {
+        HashSet<K> hashSet = new HashSet<>();
+        for (K k : this) {
+            hashSet.add(k);
+        }
+        return hashSet;
+    }
+
+    /**
+     * Removes the mapping for the specified key from this map if present.
+     * Not required for Lab 8. If you don't implement this, throw an
+     * UnsupportedOperationException.
+     *
+     * @param key
+     */
+    @Override
+    public V remove(K key) {
+        throw new UnsupportedOperationException();
+    }
+
+    /**
+     * Removes the entry for the specified key only if it is currently mapped to
+     * the specified value. Not required for Lab 8. If you don't implement this,
+     * throw an UnsupportedOperationException.
+     *
+     * @param key
+     * @param value
+     */
+    @Override
+    public V remove(K key, V value) {
+        throw new UnsupportedOperationException();
+    }
+
+    /**
+     * Returns an iterator over elements of type {@code T}.
+     *
+     * @return an Iterator.
+     */
+    @Override
+    public Iterator<K> iterator() {
+        return new MyHashMapIterator();
+    }
+
+    private Iterator<Node> nodeIterator() {
+        return new HashMapNodeIterator();
+    }
+
+    private class MyHashMapIterator implements Iterator<K> {
+        int bucketIndex = 0;
+        Iterator<Node> nodeIterator;
+
+        MyHashMapIterator() {
+            nodeIterator = createBucketIterator();
+        }
+
+        // Helper function that create an Iterator in previous bucket
+        private Iterator<Node> createBucketIterator() {
+            Collection<Node> bucket = buckets[bucketIndex];
+            return bucket.iterator();
+        }
+
+        /**
+         * Returns {@code true} if the iteration has more elements.
+         * (In other words, returns {@code true} if {@link #next} would
+         * return an element rather than throwing an exception.)
+         *
+         * @return {@code true} if the iteration has more elements
+         */
+        @Override
+        public boolean hasNext() {
+            return (bucketIndex == buckets.length - 1) && (!nodeIterator.hasNext());
+        }
+
+        /**
+         * Returns the next element in the iteration.
+         *
+         * @return the next element in the iteration
+         * @throws NoSuchElementException if the iteration has no more elements
+         */
+        @Override
+        public K next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException();
+            }
+            if (!nodeIterator.hasNext()) {
+                bucketIndex++;
+                nodeIterator = createBucketIterator();
+            }
+            return nodeIterator.next().key;
+        }
+    }
+
+    private class HashMapNodeIterator implements Iterator<Node> {
+        int bucketIndex = 0;
+        Iterator<Node> nodeIterator;
+
+        HashMapNodeIterator() {
+            nodeIterator = createBucketIterator();
+        }
+
+        // Helper function that create an Iterator in previous bucket
+        private Iterator<Node> createBucketIterator() {
+            Collection<Node> bucket = buckets[bucketIndex];
+            return bucket.iterator();
+        }
+
+        /**
+         * Returns {@code true} if the iteration has more elements.
+         * (In other words, returns {@code true} if {@link #next} would
+         * return an element rather than throwing an exception.)
+         *
+         * @return {@code true} if the iteration has more elements
+         */
+        @Override
+        public boolean hasNext() {
+            return (bucketIndex == buckets.length - 1) && (!nodeIterator.hasNext());
+        }
+
+        /**
+         * Returns the next element in the iteration.
+         *
+         * @return the next element in the iteration
+         * @throws NoSuchElementException if the iteration has no more elements
+         */
+        @Override
+        public Node next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException();
+            }
+            if (!nodeIterator.hasNext()) {
+                bucketIndex++;
+                nodeIterator = createBucketIterator();
+            }
+            return nodeIterator.next();
+        }
+    }
 
 }
