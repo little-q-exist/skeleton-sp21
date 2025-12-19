@@ -26,9 +26,11 @@ public class MyHashMap<K, V> implements Map61B<K, V>, Iterable<K> {
 
     /* Instance Variables */
     private Collection<Node>[] buckets;
+    private HashSet<K> keyset = new HashSet<>();
     // You should probably define some more!
     final int INITIAL_SIZE = 16;
     final double LOAD_FACTOR = 0.75;
+    int initialSize = INITIAL_SIZE;
     double maxLoad = LOAD_FACTOR;
     int size = 0;
 
@@ -39,6 +41,7 @@ public class MyHashMap<K, V> implements Map61B<K, V>, Iterable<K> {
 
     public MyHashMap(int initialSize) {
         buckets = createTable(initialSize);
+        this.initialSize = initialSize;
     }
 
     /**
@@ -50,6 +53,7 @@ public class MyHashMap<K, V> implements Map61B<K, V>, Iterable<K> {
      */
     public MyHashMap(int initialSize, double maxLoad) {
         buckets = createTable(initialSize);
+        this.initialSize = initialSize;
         this.maxLoad = maxLoad;
     }
 
@@ -92,7 +96,11 @@ public class MyHashMap<K, V> implements Map61B<K, V>, Iterable<K> {
      * @param tableSize the size of the table to create
      */
     private Collection<Node>[] createTable(int tableSize) {
-        return new Collection[tableSize];
+        Collection<Node>[] table = new Collection[tableSize];
+        for (int i = 0; i < tableSize; i++) {
+            table[i] = createBucket();
+        }
+        return table;
     }
 
     // TODO: Implement the methods of the Map61B Interface below
@@ -103,7 +111,8 @@ public class MyHashMap<K, V> implements Map61B<K, V>, Iterable<K> {
      */
     @Override
     public void clear() {
-        buckets = null;
+        buckets = createTable(initialSize);
+        keyset = new HashSet<>();
         size = 0;
     }
 
@@ -114,32 +123,30 @@ public class MyHashMap<K, V> implements Map61B<K, V>, Iterable<K> {
      */
     @Override
     public boolean containsKey(K key) {
-        Collection<Node> bucket = getBucketIndex(key);
+        Collection<Node> bucket = buckets[getBucketIndex(key)];
         return find(bucket, key) != null;
     }
 
     /**
-     * Helper function to find a bucket from current table with a specific key
+     * Helper function to find the index of the bucket from current table with a specific key
      */
-    private Collection<Node> getBucketIndex(K key) {
+    private int getBucketIndex(K key) {
         int hash = key.hashCode();
-        int bucketIndex = Math.floorMod(hash, buckets.length);
-        return buckets[bucketIndex];
+        return Math.floorMod(hash, buckets.length);
     }
 
     /**
-     * Helper function to find a bucket from specified table with a specific key
+     * Helper function to find the index of the bucket from specified table with a specific key
      * @param key
      * @return
      */
-    private Collection<Node> getBucketIndex(Collection<Node>[] buckets, K key) {
+    private int getBucketIndex(Collection<Node>[] buckets, K key) {
         int hash = key.hashCode();
-        int bucketIndex = Math.floorMod(hash, buckets.length);
-        return buckets[bucketIndex];
+        return Math.floorMod(hash, buckets.length);
     }
 
     /**
-     * Helper function to find a node with a specific key
+     * Helper function to find a node with a specific key in one bucket
      * @param bucket
      * @param key
      * @return
@@ -153,6 +160,15 @@ public class MyHashMap<K, V> implements Map61B<K, V>, Iterable<K> {
         return null;
     }
 
+    private Collection<Node> findNodeAndUpdate(Collection<Node> bucket, K key, V value) {
+        for (Node node : bucket) {
+            if (node.key.equals(key)) {
+                node.value = value;
+            }
+        }
+        return bucket;
+    }
+
     /**
      * Returns the value to which the specified key is mapped, or null if this
      * map contains no mapping for the key.
@@ -161,7 +177,7 @@ public class MyHashMap<K, V> implements Map61B<K, V>, Iterable<K> {
      */
     @Override
     public V get(K key) {
-        Collection<Node> bucket = getBucketIndex(key);
+        Collection<Node> bucket = buckets[getBucketIndex(key)];
         Node node = find(bucket, key);
         return node == null? null : node.value;
     }
@@ -184,13 +200,21 @@ public class MyHashMap<K, V> implements Map61B<K, V>, Iterable<K> {
     private void resize() {
         int newBucketsSize = buckets.length * 2;
         Collection<Node>[] newBuckets = createTable(newBucketsSize);
-        // TODO: iterate all Nodes and place them in the new bucket.
-        Iterator<Node> oldBucketsIterator = nodeIterator();
-        while (oldBucketsIterator.hasNext()) {
-            Node node = oldBucketsIterator.next();
-            newBuckets = concatToBucket(newBuckets, node);
+        // iterate all Nodes and place them in the new bucket.
+        for (K key: this) {
+            V value = get(key);
+            concatToBucket(newBuckets, key, value);
         }
         buckets = newBuckets;
+    }
+
+    private Collection<Node>[] updateBucket(Collection<Node>[] buckets, K key, V value) {
+        int bucketIndex = getBucketIndex(buckets, key);
+        if (buckets[bucketIndex] == null) {
+            buckets[bucketIndex] = createBucket();
+        }
+        buckets[bucketIndex] = findNodeAndUpdate(buckets[bucketIndex], key, value);
+        return buckets;
     }
 
     /**
@@ -198,12 +222,12 @@ public class MyHashMap<K, V> implements Map61B<K, V>, Iterable<K> {
      * @return a new table after the add operation
      */
     private Collection<Node>[] concatToBucket(Collection<Node>[] buckets, K key, V value) {
-        Collection<Node> bucket = getBucketIndex(buckets, key);
-        if (bucket == null) {
-            bucket = createBucket();
+        int bucketIndex = getBucketIndex(buckets, key);
+        if (buckets[bucketIndex] == null) {
+            buckets[bucketIndex] = createBucket();
         }
         Node node = createNode(key, value);
-        bucket.add(node);
+        buckets[bucketIndex].add(node);
         return buckets;
     }
 
@@ -212,11 +236,11 @@ public class MyHashMap<K, V> implements Map61B<K, V>, Iterable<K> {
       @return a new bucket table after the add operation
      */
     private Collection<Node>[] concatToBucket(Collection<Node>[] buckets, Node node) {
-        Collection<Node> bucket = getBucketIndex(buckets, node.key);
-        if (bucket == null) {
-            bucket = createBucket();
+        int bucketIndex = getBucketIndex(buckets, node.key);
+        if (buckets[bucketIndex] == null) {
+            buckets[bucketIndex] = createBucket();
         }
-        bucket.add(node);
+        buckets[bucketIndex].add(node);
         return buckets;
     }
 
@@ -232,8 +256,14 @@ public class MyHashMap<K, V> implements Map61B<K, V>, Iterable<K> {
     @Override
     public void put(K key, V value) {
         resizeWhenNeeded();
-        buckets = concatToBucket(this.buckets, key, value);
-        size ++;
+        if (containsKey(key)) {
+            // update value when key is not unique
+            buckets = updateBucket(buckets, key, value);
+        } else {
+            buckets = concatToBucket(this.buckets, key, value);
+            keyset.add(key);
+            size++;
+        }
     }
 
     /**
@@ -283,23 +313,8 @@ public class MyHashMap<K, V> implements Map61B<K, V>, Iterable<K> {
         return new MyHashMapIterator();
     }
 
-    private Iterator<Node> nodeIterator() {
-        return new HashMapNodeIterator();
-    }
-
     private class MyHashMapIterator implements Iterator<K> {
-        int bucketIndex = 0;
-        Iterator<Node> nodeIterator;
-
-        MyHashMapIterator() {
-            nodeIterator = createBucketIterator();
-        }
-
-        // Helper function that create an Iterator in previous bucket
-        private Iterator<Node> createBucketIterator() {
-            Collection<Node> bucket = buckets[bucketIndex];
-            return bucket.iterator();
-        }
+        Iterator<K> it = keyset.iterator();
 
         /**
          * Returns {@code true} if the iteration has more elements.
@@ -310,7 +325,7 @@ public class MyHashMap<K, V> implements Map61B<K, V>, Iterable<K> {
          */
         @Override
         public boolean hasNext() {
-            return (bucketIndex == buckets.length - 1) && (!nodeIterator.hasNext());
+            return it.hasNext();
         }
 
         /**
@@ -321,60 +336,7 @@ public class MyHashMap<K, V> implements Map61B<K, V>, Iterable<K> {
          */
         @Override
         public K next() {
-            if (!hasNext()) {
-                throw new NoSuchElementException();
-            }
-            if (!nodeIterator.hasNext()) {
-                bucketIndex++;
-                nodeIterator = createBucketIterator();
-            }
-            return nodeIterator.next().key;
+            return it.next();
         }
     }
-
-    private class HashMapNodeIterator implements Iterator<Node> {
-        int bucketIndex = 0;
-        Iterator<Node> nodeIterator;
-
-        HashMapNodeIterator() {
-            nodeIterator = createBucketIterator();
-        }
-
-        // Helper function that create an Iterator in previous bucket
-        private Iterator<Node> createBucketIterator() {
-            Collection<Node> bucket = buckets[bucketIndex];
-            return bucket.iterator();
-        }
-
-        /**
-         * Returns {@code true} if the iteration has more elements.
-         * (In other words, returns {@code true} if {@link #next} would
-         * return an element rather than throwing an exception.)
-         *
-         * @return {@code true} if the iteration has more elements
-         */
-        @Override
-        public boolean hasNext() {
-            return (bucketIndex == buckets.length - 1) && (!nodeIterator.hasNext());
-        }
-
-        /**
-         * Returns the next element in the iteration.
-         *
-         * @return the next element in the iteration
-         * @throws NoSuchElementException if the iteration has no more elements
-         */
-        @Override
-        public Node next() {
-            if (!hasNext()) {
-                throw new NoSuchElementException();
-            }
-            if (!nodeIterator.hasNext()) {
-                bucketIndex++;
-                nodeIterator = createBucketIterator();
-            }
-            return nodeIterator.next();
-        }
-    }
-
 }
